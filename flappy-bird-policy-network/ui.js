@@ -130,19 +130,23 @@ function onIterationEnd(iterationCount, totalIterations) {
 // Objects and function to support the plotting of game steps during training.
 let meanStepValues = [];
 function plotSteps() {
-  console.log('meanStepValues: ', meanStepValues);
-  console.log('steps container: ',stepsContainer);
-  const data = [
-    { index: 0, value: 50 },
-    { index: 1, value: 100 },
-    { index: 2, value: 150 },
-  ];
-  tfvis.render.linechart({values: data}, stepsContainer, {
-    xLabel: 'Training Iteration',
-    yLabel: 'Mean Steps Per Game',
-    width: 400,
-    height: 300,
-  });
+  for (let i in meanStepValues)
+  {
+    console.log('Mean # of steps at iteration ', meanStepValues[i].x, ' is ', meanStepValues[i].y);
+  }
+  // console.log('meanStepValues: ', meanStepValues);
+  // console.log('steps container: ',stepsContainer);
+  // const data = [
+  //   { index: 0, value: 50 },
+  //   { index: 1, value: 100 },
+  //   { index: 2, value: 150 },
+  // ];
+  // tfvis.render.linechart({values: data}, stepsContainer, {
+  //   xLabel: 'Training Iteration',
+  //   yLabel: 'Mean Steps Per Game',
+  //   width: 400,
+  //   height: 300,
+  // });
 }
 
 
@@ -397,7 +401,7 @@ async function updateUIControlState() {
           trainSpeed.textContent = `${stepsPerSecond.toFixed(1)} steps/s`
           meanStepValues.push({x: i + 1, y: mean(gameSteps)});
           console.log(`# of tensors: ${tf.memory().numTensors}`);
-          // plotSteps();
+          plotSteps();
           onIterationEnd(i + 1, trainIterations);
           await tf.nextFrame();  // Unblock UI thread.
           await policyNet.saveModel();
