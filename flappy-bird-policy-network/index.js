@@ -147,9 +147,9 @@ class PolicyNetwork {
           // gameRewards.push(1);
 
           if (addtlReward) { 
-            gameRewards.push(10); // add a bunch of reward for passing a pipe
+            gameRewards.push(1); // add a bunch of reward for passing a pipe
           } else {
-            gameRewards.push(1);
+            gameRewards.push(0);
           }
         }
       }

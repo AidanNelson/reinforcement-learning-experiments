@@ -417,7 +417,7 @@ class Bird {
 
 
     this.gravity = 0.6;
-    this.lift = -1;
+    this.lift = -5;
     // this.lift = 0;
     this.velocity = 0;
 
@@ -442,19 +442,18 @@ class Bird {
   }
 
   up() {
-    // this.velocity = this.lift;
-
-    this.y += 5;
+    this.velocity = this.lift;
+    // this.y += 5;
   }
 
   down() {
-    this.y -= 5;
+    // this.y -= 5;
   }
 
   update() {
     // uncomment following lines to add gravity back in:
-    // this.velocity += this.gravity;
-    // this.y += this.velocity;
+    this.velocity += this.gravity;
+    this.y += this.velocity;
 
     if (this.y >= this.canvasHeight - this.height / 2) {
       this.y = this.canvasHeight - this.height / 2;
