@@ -175,6 +175,8 @@ class FlappyBird {
     this.pipes.push(new Pipe(this.canvasWidth, this.canvasHeight));
     this.frameCount = 0;
     this.gameoverFrame = this.frameCount - 1;
+
+    this.closest;
   }
 
   setRandomState() {
@@ -199,21 +201,21 @@ class FlappyBird {
       let diff = this.pipes[i].x - this.bird.x;
       if (diff > 0 && diff < record) {
         record = diff;
-        closest = this.pipes[i];
+        this.closest = this.pipes[i];
       }
     }
     // Now create the inputs to the neural network
     let inputs = [];
-    if (closest != null) {
+    if (this.closest != null) {
       
-      // x position of closest pipe
-      inputs[0] = mapRanges(closest.x, this.bird.x, this.canvasWidth, -1, 1);
-      // top of closest pipe opening
-      inputs[1] = mapRanges(closest.top, 0, this.canvasHeight, -1, 1);
-      // bottom of closest pipe opening
-      inputs[2] = mapRanges(closest.bottom, 0, this.canvasHeight, -1, 1);
+      // x position of this.closest pipe
+      inputs[0] = mapRanges(this.closest.x, this.bird.x, this.canvasWidth, 0, 1);
+      // top of this.closest pipe opening
+      inputs[1] = mapRanges(this.closest.top, 0, this.canvasHeight, 0, 1);
+      // bottom of this.closest pipe opening
+      inputs[2] = mapRanges(this.closest.bottom, 0, this.canvasHeight, 0, 1);
       // bird's y position
-      inputs[3] = mapRanges(this.bird.y, 0, this.canvasHeight, -1, 1);
+      inputs[3] = mapRanges(this.bird.y, 0, this.canvasHeight, 0, 1);
       // bird's y velocity
       inputs[4] = mapRanges(this.bird.velocity, -5, 5, -1, 1);
 
@@ -267,8 +269,19 @@ class FlappyBird {
 
     this.frameCount++;
 
+    // top of closest pipe opening
+    let openingCenterY = mapRanges(this.closest.top + (250/2), 0, this.canvasHeight, 0, 1);
+    // bird's y position
+    let birdY = mapRanges(this.bird.y, 0, this.canvasHeight, 0, 1);
+
+    // console.log('Closest pipe opening Y: ', openingCenterY);
+    // console.log('BirdY: ', birdY);
+
+    let rew = 1 - Math.abs(birdY-openingCenterY);
+
+    // console.log('reward: ', rew);
     // return done state and additional reward for passing pipes
-    return [_isDone, _reward];
+    return [_isDone, rew];
   }
 
   reset() {

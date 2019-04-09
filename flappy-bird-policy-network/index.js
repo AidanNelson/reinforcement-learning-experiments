@@ -146,11 +146,12 @@ class PolicyNetwork {
           // higher reward values for longer-lasting games.
           // gameRewards.push(1);
 
-          if (addtlReward) { 
-            gameRewards.push(1); // add a bunch of reward for passing a pipe
-          } else {
-            gameRewards.push(0);
-          }
+          // if (addtlReward) { 
+          //   gameRewards.push(1); // add a bunch of reward for passing a pipe
+          // } else {
+          //   gameRewards.push(0);
+          // }
+          gameRewards.push(addtlReward);
         }
       }
       onGameEnd(i + 1, numGames);

@@ -1,12 +1,11 @@
-
-
+// JS Implementation of https://gym.openai.com/envs/FrozenLake-v0/
 class FrozenLake {
   constructor(size, qAgent) {
     this.size = size;
     this.map = [];
 
     this.qAgent = qAgent;
-    this.showTable = true;
+    this.showTable = false;
     
     for (let i = 0; i < size; i++){
       let row = [];
@@ -43,7 +42,6 @@ class FrozenLake {
   reset() {
     //Reset the environment's state. Returns observation.
     this.pos.x = 0; this.pos.y = 0;
-    // console.log(this.getCurrentState());
     return this.getCurrentState();
   }
 
@@ -79,18 +77,6 @@ class FrozenLake {
     }
   }
 
-  getMaxRewardFromCurrentState() {
-    let maxReward = 0;
-
-    if (this.map[this.pos.y][this.pos.x] == "G") {
-      reward = 1;
-      done = true;
-    }
-    if (this.map[this.pos.y][this.pos.x] == "H") {
-      done = true;
-    }
-  }
-
   render() {
     // reset background
     background(200, 100, 200);
@@ -110,10 +96,10 @@ class FrozenLake {
         let em = "";
         switch (this.map[y][x]) {
           case "S":
-            // em = "🔸";
+            em = "🔸";
             break;
           case "F":
-            // em = "🔸";
+            em = "🔸";
             break;
           case "H":
             em = "☠";
@@ -122,6 +108,12 @@ class FrozenLake {
             em = "🎉";
             break;
         }
+
+        textSize(64);
+        textAlign(CENTER);
+        text(em, buff + x * spaceSize, (buff + y * spaceSize));
+
+        
         if (this.showTable){
           let stateIndex = (y * this.map[0].length) + x;
           let actionArr = this.qAgent.qt[stateIndex];
@@ -158,9 +150,7 @@ class FrozenLake {
           text(arrow, buff + x * spaceSize, (buff + y * spaceSize));
         }
 
-        textSize(64);
-        textAlign(CENTER);
-        text(em, buff + x * spaceSize, (buff + y * spaceSize));
+        
       }
     }
 
@@ -183,8 +173,6 @@ class FrozenLake {
     }
 
     text(em, this.pos.x * spaceSize + buff, this.pos.y * spaceSize + buff);
-    // fill(200, 0, 0, 50);
-    // ellipse(this.pos.x * spaceSize + buff, this.pos.y * spaceSize + buff, 50);
   }
 
   getCurrentState() {
