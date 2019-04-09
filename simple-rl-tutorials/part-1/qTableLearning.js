@@ -29,7 +29,7 @@ class QAgent {
   }
 
   train() {
-    let numEpisodes = 100000;
+    let numEpisodes = 1001;
     for (let i = 0; i < numEpisodes; i++) {
       let currState = this.env.reset();
       let rAll = 0;
@@ -86,7 +86,11 @@ class QAgent {
       }
       if (i % 1000 === 0) {
         console.log('_______________');
-        console.log('attempt number ', i, ' produced a reward of ', rAll);
+        // console.log('attempt number ', i, ' produced a reward of ', rAll);
+        let numRewards = 0;
+        for (let i = 0; i < this.rewardList.length; i++) { if (this.rewardList[i] === 1) { numRewards++; } };
+        console.log('Agent successfully reached goal', numRewards, ' out of ', i, ' attempts.');
+
       }
 
       this.rewardList.push(rAll);

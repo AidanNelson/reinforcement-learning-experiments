@@ -1,6 +1,6 @@
 // JS implementation of https://gist.github.com/awjuliani/4d69edad4d0ed9a5884f3cdcf0ea0874#file-q-net-learning-clean-ipynb
 
-class QNetwork {
+class QNetworkLayers {
   constructor(envSize) {
     tf.setBackend('cpu'); // this seems to speed things up a bit
     // create model using TFJS Layers

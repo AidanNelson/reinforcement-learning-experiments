@@ -16,7 +16,7 @@ Dan Shiffman on tensorflow.js Layers API:
 
 */
 let qAgent;
-let logBenchmarks = false;
+let logBenchmarks = true;
 
 
 
@@ -25,8 +25,9 @@ function setup(){
     background(200,100,200);
 
     
-    qAgent = new QAgent(6);
-    // qAgent = new QNetwork(3);
+    // qAgent = new QAgent(6);
+    qAgent = new QNetwork(4);
+    // qAgent = new QNetworkLayers(3);
 
     let trainButton = createButton('Train Q Agent');
     trainButton.mousePressed(() =>{ qAgent.train()});
