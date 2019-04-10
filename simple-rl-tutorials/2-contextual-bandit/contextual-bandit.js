@@ -14,7 +14,6 @@ class Bandit {
 
     pullArm(action) {
         let bandit = this.bandits[this.state][this.action];
-
         if (randomGaussian() > bandit) {
             return 1;
         } else {

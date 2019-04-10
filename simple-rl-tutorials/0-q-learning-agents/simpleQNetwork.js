@@ -10,6 +10,8 @@ class QNetwork {
     this.optimizer = tf.train.sgd(0.1);
     this.weights = tf.variable(tf.randomUniform([envSize * envSize, 4], 0, 0.01));
 
+    this.totalTrainingEpisodes = 0;
+
     // #These lines establish the feed-forward part of the network used to choose actions
     // inputs1 = tf.placeholder(shape=[1,16],dtype=tf.float32)
     // W = tf.Variable(tf.random_uniform([16,4],0,0.01))
@@ -29,8 +31,8 @@ class QNetwork {
     this.env.render();
 
     // set hyperparameters for training
-    this.y = 0.99;
-    this.e = 0.1;
+    this.y = 0.98;
+    this.e = 0.2;
 
     // some variables to store training data:
     this.rList = [];
@@ -39,6 +41,7 @@ class QNetwork {
   async train() {
     let numEpisodes = 10000;
     for (let i = 0; i < numEpisodes; i++) {
+      this.totalTrainingEpisodes++;
       await this.trainOneEpisode(i);
     }
   }
@@ -128,22 +131,27 @@ class QNetwork {
       rAll += reward;
       currState = nextState;
 
-      // reduce 'e' chance of taking a random action
       if (done) {
-        this.e = 1.0 / ((i / 50) + 10);
+        // this can be tweaked!
+        // reduce 'e' chance of taking a random action
+        this.e = 10.0 / ((i / 50.0) + 10.0);
         break;
       }
     }
 
     this.rList.push(rAll);
 
-    if (i % 1000 === 0) {
+    // every now and again, update the console
+    if (this.totalTrainingEpisodes % 1000 === 0) {
       let numRewards = 0;
       for (let i = 0; i < this.rList.length; i++) { if (this.rList[i] === 1) { numRewards++; } };
-      console.log('Agent successfully reached goal', numRewards, ' out of ', i, ' attempts.');
+      console.log('-----------------------------------------------------');
+
+      console.log('Agent successfully reached goal', numRewards, ' out of ', this.totalTrainingEpisodes, ' episodes.');
+      console.log('Current \'e\' value: ', this.e);
 
       if (logBenchmarks) {
-        console.log('------------------------ TIME -----------------------');
+        console.log('Benchmarks:');
         console.log('Get allQ time:       ', t1b - t1a, ' milliseconds');
         console.log('Get action time:     ', t2b - t2a, ' milliseconds');
         console.log('Get maxQ1 time:      ', t3b - t3a, ' milliseconds');
