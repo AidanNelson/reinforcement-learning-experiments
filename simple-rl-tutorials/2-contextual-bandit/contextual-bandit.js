@@ -107,12 +107,6 @@ class Agent {
 
         }
 
-        // ideally i would do all of the following in TFjs, rather than javascript, but I'm not sure how...
-        // this seems to return a flat array
-        let weights = tf.tidy(() => {
-            return this.weights.dataSync();
-        });
-
         // so iterate through it as follows
         for (let i = 0; i < this.numStates; i++) {
 
