@@ -9,7 +9,6 @@ class QNetwork {
     this.loss = (Qout, nextQ) => tf.sum(nextQ.sub(Qout).square());
     this.optimizer = tf.train.sgd(0.1);
     this.weights = tf.variable(tf.randomUniform([envSize * envSize, 4], 0, 0.01));
-
     this.totalTrainingEpisodes = 0;
 
     // #These lines establish the feed-forward part of the network used to choose actions

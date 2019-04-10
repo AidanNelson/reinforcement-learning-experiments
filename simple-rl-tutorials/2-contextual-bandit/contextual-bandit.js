@@ -13,8 +13,9 @@ class Bandit {
     }
 
     pullArm(action) {
-        let bandit = this.bandits[this.state][this.action];
-        if (randomGaussian() > bandit) {
+        let bandit = this.bandits[this.state][action];
+        let r = randomGaussian(0, 1); // normal distribution
+        if (r > bandit) {
             return 1;
         } else {
             return -1;
@@ -24,28 +25,14 @@ class Bandit {
 
 
 // define an agent class
-
 class Agent {
     constructor(_learningRate, _numStates, _numActions) {
-        this.model = tf.sequential();
-        this.model.add(
-            tf.layers.dense({
-                units: [_numStates],
-                useBias: false,
-                activation: 'sigmoid',
-                inputShape: [4],
-                kernelInitializer: tf.initializers.ones()
-            })
-        );
-        this.model.compile({ 
-            optimizer: tf.train.sgd(_learningRate), 
-            loss: tf.losses.logLoss 
-        });
-        this.bandit = new Bandit();
-        this.totalReward = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
-        this.e = 0.01;
+        this.lr = _learningRate;
+        this.numStates = _numStates;
+        this.numActions = _numActions;
 
 
+        this.weights = tf.variable(tf.ones([this.numStates, this.numActions]));
         // #These lines established the feed-forward part of the network. The agent takes a state and produces an action.
         // self.state_in= tf.placeholder(shape=[1],dtype=tf.int32)
         // state_in_OH = slim.one_hot_encoding(self.state_in,s_size)
@@ -62,83 +49,131 @@ class Agent {
         // self.loss = -(tf.log(self.responsible_weight)*self.reward_holder)
         // optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
         // self.update = optimizer.minimize(self.loss)
+
+        this.loss = (currState, action, rewardTensor) => {
+            const inputTensor = this.getStateTensor(currState);
+            const actionTensor = inputTensor.matMul(this.weights).sigmoid();
+            const responsibleWeight = tf.slice(actionTensor.reshape([-1]), action[0], [1]);
+            return tf.log(responsibleWeight).mul(rewardTensor).mul(tf.scalar(-1)).asScalar();
+        }
+        this.optimizer = tf.train.sgd(this.lr);
+
+
+        this.bandit = new Bandit();
+        this.totalReward = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+        this.e = 0.1;
     }
 
     async train() {
 
-        for (let i = 0; i < 1; i++) {
-            console.log('_________________');
+        for (let i = 0; i < 2000; i++) {
             let currState = this.bandit.getBandit();
 
             let action;
+
             if (Math.random() < this.e) {
-                action = Math.floor(Math.random() * this.bandit.numBandits);
+                action = [Math.floor(Math.random() * this.bandit.numBandits)];
             } else {
-                let stateTensor = this.getStateTensor(currState);
-                console.log('stateTensor: ', stateTensor);
-                action = this.model.predict(stateTensor);
-                let ac = await action.data();
-                console.log('action: ', ac);
-
-
+                action = tf.tidy(() => {
+                    const inputTensor = this.getStateTensor(currState);
+                    const actionTensor = inputTensor.matMul(this.weights).sigmoid();
+                    return tf.argMax(actionTensor.reshape([-1])).dataSync();
+                });
             }
 
-            let reward = this.bandit.pullArm(action);
-            console.log('state: ', currState);
-            console.log('reward: ', reward);
+            let reward = this.bandit.pullArm(action[0]);
+            // console.log('_________________________________');
+            // console.log('Agent took action ', action[0], ' in state ', currState, ' and received a reward of ', reward);
+            // console.log('Bandits: ', this.bandit.bandits);
+
+
+            //     #The next six lines establish the training proceedure. We feed the reward and chosen action into the network
+            // #to compute the loss, and use it to update the network.
+            // self.reward_holder = tf.placeholder(shape=[1],dtype=tf.float32)
+            // self.action_holder = tf.placeholder(shape=[1],dtype=tf.int32)
+            // self.responsible_weight = tf.slice(self.output,self.action_holder,[1])
+            // self.loss = -(tf.log(self.responsible_weight)*self.reward_holder)
+            // optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
+            // self.update = optimizer.minimize(self.loss)
+            const rewardTensor = tf.tensor1d([reward]);
+            await this.optimizer.minimize(() => this.loss(currState, action, rewardTensor));
+            rewardTensor.dispose();
+
+            this.totalReward[currState][action[0]] += reward;
+
+            if (i % 100 === 0) {
+                console.log('Running reward for the ', this.numStates + 1, ' bandits after ', i, ' trials is: ', this.totalReward);
+            }
 
         }
 
-        // myAgent = agent(lr=0.001,s_size=cBandit.num_bandits,a_size=cBandit.num_actions) #Load the agent.
-        // weights = tf.trainable_variables()[0] #The weights we will evaluate to look into the network.
+        // ideally i would do all of the following in TFjs, rather than javascript, but I'm not sure how...
+        // this seems to return a flat array
+        let weights = tf.tidy(() => {
+            return this.weights.dataSync();
+        });
 
-        // total_episodes = 10000 #Set total number of episodes to train agent on.
-        // total_reward = np.zeros([cBandit.num_bandits,cBandit.num_actions]) #Set scoreboard for bandits to 0.
-        // e = 0.1 #Set the chance of taking a random action.
+        // so iterate through it as follows
+        for (let i = 0; i < this.numStates; i++) {
 
-        // init = tf.initialize_all_variables()
+            let bestBetIndex = tf.tidy(() => {
+                let weightsRow = this.weights.slice([i, 0], [1, 4]).flatten();
+                return tf.argMax(weightsRow).dataSync();
+            });
 
-        // # Launch the tensorflow graph
-        // with tf.Session() as sess:
-        //     sess.run(init)
-        //     i = 0
-        //     while i < total_episodes:
-        //         s = cBandit.getBandit() #Get a state from the environment.
+            let bestIndex = -1;
+            let min = 1000;
+            let bandit = this.bandit.bandits[i];
 
-        //         #Choose either a random action or one from our network.
-        //         if np.random.rand(1) < e:
-        //             action = np.random.randint(cBandit.num_actions)
-        //         else:
-        //             action = sess.run(myAgent.chosen_action,feed_dict={myAgent.state_in:[s]})
+            for (let j = 0; j < this.numActions; j++) {
+                if (bandit[j] < min)
+                {
+                    bestIndex = j;
+                    min = bandit[j]
+                }
+            }
 
-        //         reward = cBandit.pullArm(action) #Get our reward for taking an action given a bandit.
+            if (bestBetIndex[0] == bestIndex) {
+                console.log("The agent thinks action ", bestBetIndex[0] + 1, " for bandit number ", i + 1, " is the best bet! And it was right!");
+            } else {
+                console.log("The agent thinks bandit ", bestBetIndex[0] + 1, " for bandit number ", i + 1, " is the best bet! And it was wrong!");
+            }
 
-        //         #Update the network.
-        //         feed_dict={myAgent.reward_holder:[reward],myAgent.action_holder:[action],myAgent.state_in:[s]}
-        //         _,ww = sess.run([myAgent.update,weights], feed_dict=feed_dict)
+        }
 
-        //         #Update our running tally of scores.
-        //         total_reward[s,action] += reward
-        //         if i % 500 == 0:
-        //             print "Mean reward for each of the " + str(cBandit.num_bandits) + " bandits: " + str(np.mean(total_reward,axis=1))
-        //         i+=1
-        // for a in range(cBandit.num_bandits):
-        //     print "The agent thinks action " + str(np.argmax(ww[a])+1) + " for bandit " + str(a+1) + " is the most promising...."
-        //     if np.argmax(ww[a]) == np.argmin(cBandit.bandits[a]):
-        //         print "...and it was right!"
-        //     else:
-        //         print "...and it was wrong!"
+
+        // if (bestBetIndex[0] == bestBanditIndex) {
+        //     console.log("The agent thinks bandit ", bestBetIndex[0] + 1, " is the best bet! And it was right!");
+        // } else {
+        //     console.log("The agent thinks bandit ", bestBetIndex[0] + 1, " is the best bet! And it was wrong!");
+        // }
+
+        //     for a in range(cBandit.num_bandits):
+        // print "The agent thinks action " + str(np.argmax(ww[a])+1) + " for bandit " + str(a+1) + " is the most promising...."
+        // if np.argmax(ww[a]) == np.argmin(cBandit.bandits[a]):
+        //     print "...and it was right!"
+        // else:
+        //     print "...and it was wrong!"
     }
 
     getStateTensor(s) {
-        let oneHotState = [[0, 0, 0, 0]];
-        oneHotState[0][s] = 1;
-        return tf.tensor2d(oneHotState);
+        let ar = [[]];
+        for (let i = 0; i < this.numStates; i++) {
+            ar[0].push(0);
+        }
+        ar[0][s] = 1;
+        return tf.tensor2d(ar);
     }
 }
 
+
 let myAgent;
+
+
 function setup() {
+    createCanvas(200, 200);
     myAgent = new Agent(0.001, 3, 4);
+    myAgent.train(1);
 }
+
 
