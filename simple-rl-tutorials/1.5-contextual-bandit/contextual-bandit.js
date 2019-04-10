@@ -50,12 +50,14 @@ class Agent {
         // optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
         // self.update = optimizer.minimize(self.loss)
 
-        this.loss = (currState, action, rewardTensor) => {
+        this.loss = (currState, action, reward) => {
+            const rewardTensor = tf.tensor1d([reward]);
             const inputTensor = this.getStateTensor(currState);
             const actionTensor = inputTensor.matMul(this.weights).sigmoid();
             const responsibleWeight = tf.slice(actionTensor.reshape([-1]), action[0], [1]);
             return tf.log(responsibleWeight).mul(rewardTensor).mul(tf.scalar(-1)).asScalar();
         }
+        
         this.optimizer = tf.train.sgd(this.lr);
 
 
@@ -82,22 +84,10 @@ class Agent {
             }
 
             let reward = this.bandit.pullArm(action[0]);
-            // console.log('_________________________________');
-            // console.log('Agent took action ', action[0], ' in state ', currState, ' and received a reward of ', reward);
-            // console.log('Bandits: ', this.bandit.bandits);
 
+            
+            await this.optimizer.minimize(() => this.loss(currState, action, reward));
 
-            //     #The next six lines establish the training proceedure. We feed the reward and chosen action into the network
-            // #to compute the loss, and use it to update the network.
-            // self.reward_holder = tf.placeholder(shape=[1],dtype=tf.float32)
-            // self.action_holder = tf.placeholder(shape=[1],dtype=tf.int32)
-            // self.responsible_weight = tf.slice(self.output,self.action_holder,[1])
-            // self.loss = -(tf.log(self.responsible_weight)*self.reward_holder)
-            // optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
-            // self.update = optimizer.minimize(self.loss)
-            const rewardTensor = tf.tensor1d([reward]);
-            await this.optimizer.minimize(() => this.loss(currState, action, rewardTensor));
-            rewardTensor.dispose();
 
             this.totalReward[currState][action[0]] += reward;
 
@@ -134,20 +124,6 @@ class Agent {
             }
 
         }
-
-
-        // if (bestBetIndex[0] == bestBanditIndex) {
-        //     console.log("The agent thinks bandit ", bestBetIndex[0] + 1, " is the best bet! And it was right!");
-        // } else {
-        //     console.log("The agent thinks bandit ", bestBetIndex[0] + 1, " is the best bet! And it was wrong!");
-        // }
-
-        //     for a in range(cBandit.num_bandits):
-        // print "The agent thinks action " + str(np.argmax(ww[a])+1) + " for bandit " + str(a+1) + " is the most promising...."
-        // if np.argmax(ww[a]) == np.argmin(cBandit.bandits[a]):
-        //     print "...and it was right!"
-        // else:
-        //     print "...and it was wrong!"
     }
 
     getStateTensor(s) {
